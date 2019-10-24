@@ -49,6 +49,9 @@ if(substr($tmp, 0,strlen($tmp_dir)) !== $tmp_dir)
 	err(403,"Forbidden");
 if(strpos($_REQUEST['file'], DIRECTORY_SEPARATOR) === 0)
 	err(403,"Forbidden");
+if(preg_match('@^.+://@',$_REQUEST['file'])) {
+	err(403,"Forbidden");
+}
 
 
 if(!$_COOKIE['_sfm_xsrf'])
@@ -59,8 +62,6 @@ if($_POST) {
 }
 
 $file = $_REQUEST['file'] ?: '.';
-// strip url syntax, like file://....
-$file = preg_replace('@^.+://@','',$file);
 
 if($_GET['do'] == 'list') {
 	if (is_dir($file)) {
@@ -110,6 +111,10 @@ if($_GET['do'] == 'list') {
 	$res = move_uploaded_file($_FILES['file_data']['tmp_name'], $file.'/'.$_FILES['file_data']['name']);
 	exit;
 } elseif ($_GET['do'] == 'download') {
+	foreach($disallowed_extensions as $ext)
+		if(preg_match(sprintf('/\.%s$/',preg_quote($ext)), $file))
+			err(403,"Files of this type are not allowed.");
+
 	$filename = basename($file);
 	$finfo = finfo_open(FILEINFO_MIME_TYPE);
 	header('Content-Type: ' . finfo_file($finfo, $file));
