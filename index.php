@@ -69,21 +69,26 @@ if($_GET['do'] == 'list') {
 		$result = [];
 		$files = array_diff(scandir($directory), ['.','..']);
 		foreach ($files as $entry) if (!is_entry_ignored($entry, $allow_show_folders, $hidden_patterns)) {
-		$i = $directory . '/' . $entry;
-		$stat = stat($i);
-	        $result[] = [
-	        	'mtime' => $stat['mtime'],
-	        	'size' => $stat['size'],
-	        	'name' => basename($i),
-	        	'path' => preg_replace('@^\./@', '', $i),
-	        	'is_dir' => is_dir($i),
-	        	'is_deleteable' => $allow_delete && ((!is_dir($i) && is_writable($directory)) ||
-                                                           (is_dir($i) && is_writable($directory) && is_recursively_deleteable($i))),
-	        	'is_readable' => is_readable($i),
-	        	'is_writable' => is_writable($i),
-	        	'is_executable' => is_executable($i),
-	        ];
-	    }
+			$i = $directory . '/' . $entry;
+			$stat = stat($i);
+			$result[] = [
+				'mtime' => $stat['mtime'],
+				'size' => $stat['size'],
+				'name' => basename($i),
+				'path' => preg_replace('@^\./@', '', $i),
+				'is_dir' => is_dir($i),
+				'is_deleteable' => $allow_delete && ((!is_dir($i) && is_writable($directory)) ||
+														(is_dir($i) && is_writable($directory) && is_recursively_deleteable($i))),
+				'is_readable' => is_readable($i),
+				'is_writable' => is_writable($i),
+				'is_executable' => is_executable($i),
+			];
+		}
+		usort($result,function($f1,$f2){
+			$f1_key = ($f1['is_dir']?:2) . $f1['name'];
+			$f2_key = ($f2['is_dir']?:2) . $f2['name'];
+			return $f1_key > $f2_key;
+		});
 	} else {
 		err(412,"Not a Directory");
 	}
