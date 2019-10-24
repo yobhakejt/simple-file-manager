@@ -59,6 +59,9 @@ if($_POST) {
 }
 
 $file = $_REQUEST['file'] ?: '.';
+// strip url syntax, like file://....
+$file = preg_replace('@^.+://@','',$file);
+
 if($_GET['do'] == 'list') {
 	if (is_dir($file)) {
 		$directory = $file;
