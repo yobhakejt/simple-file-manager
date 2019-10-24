@@ -16,8 +16,8 @@ $allow_create_folder = true; // Set to false to disable folder creation
 $allow_direct_link = true; // Set to false to only allow downloads and not direct link
 $allow_show_folders = true; // Set to false to hide all subdirectories
 
-$disallowed_extensions = ['php'];  // must be an array. Extensions disallowed to be uploaded
-$hidden_extensions = ['php']; // must be an array of lowercase file extensions. Extensions hidden in directory index
+$disallowed_patterns = ['*.php'];  // must be an array.  Matching files not allowed to be uploaded
+$hidden_patterns = ['*.php','.*']; // Matching files hidden in directory index
 
 $PASSWORD = '';  // Set the password, to access the file manager... (optional)
 
@@ -68,7 +68,7 @@ if($_GET['do'] == 'list') {
 		$directory = $file;
 		$result = [];
 		$files = array_diff(scandir($directory), ['.','..']);
-		foreach ($files as $entry) if (!is_entry_ignored($entry, $allow_show_folders, $hidden_extensions)) {
+		foreach ($files as $entry) if (!is_entry_ignored($entry, $allow_show_folders, $hidden_patterns)) {
 		$i = $directory . '/' . $entry;
 		$stat = stat($i);
 	        $result[] = [
@@ -104,15 +104,15 @@ if($_GET['do'] == 'list') {
 	@mkdir($_POST['name']);
 	exit;
 } elseif ($_POST['do'] == 'upload' && $allow_upload) {
-	foreach($disallowed_extensions as $ext)
-		if(preg_match(sprintf('/\.%s$/',preg_quote($ext)), $_FILES['file_data']['name']))
+	foreach($disallowed_patterns as $pattern)
+		if(fnmatch($pattern, $_FILES['file_data']['name']))
 			err(403,"Files of this type are not allowed.");
 
 	$res = move_uploaded_file($_FILES['file_data']['tmp_name'], $file.'/'.$_FILES['file_data']['name']);
 	exit;
 } elseif ($_GET['do'] == 'download') {
-	foreach($disallowed_extensions as $ext)
-		if(preg_match(sprintf('/\.%s$/',preg_quote($ext)), $file))
+	foreach($disallowed_patterns as $pattern)
+		if(fnmatch($pattern, $file))
 			err(403,"Files of this type are not allowed.");
 
 	$filename = basename($file);
@@ -126,7 +126,7 @@ if($_GET['do'] == 'list') {
 	exit;
 }
 
-function is_entry_ignored($entry, $allow_show_folders, $hidden_extensions) {
+function is_entry_ignored($entry, $allow_show_folders, $hidden_patterns) {
 	if ($entry === basename(__FILE__)) {
 		return true;
 	}
@@ -134,12 +134,11 @@ function is_entry_ignored($entry, $allow_show_folders, $hidden_extensions) {
 	if (is_dir($entry) && !$allow_show_folders) {
 		return true;
 	}
-
-	$ext = strtolower(pathinfo($entry, PATHINFO_EXTENSION));
-	if (in_array($ext, $hidden_extensions)) {
-		return true;
+	foreach($hidden_patterns as $pattern) {
+		if(fnmatch($pattern,$entry)) {
+			return true;
+		}
 	}
-
 	return false;
 }
 
